@@ -121,6 +121,34 @@ h2 span { color:var(--y); }
 #lb { position:fixed; top:0; right:0; bottom:0; left:0; background:rgba(0,0,0,.85); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; cursor:pointer; }
 #lb.open { display:flex; }
 #lb img { max-width:100%; max-height:90vh; border-radius:20px; border:1px solid rgba(255,255,255,.25); }
+/* форма заявки */
+  .form { margin-top:30px; text-align:left; }
+  .form h3 { text-align:center; font-size:clamp(22px,4.5vw,30px); margin-bottom:6px; }
+  .form h3 span { color:var(--y); }
+  .form .lead { text-align:center; color:rgba(255,255,255,.7); font-size:15px; margin-bottom:18px; }
+  .form label.f { display:block; margin:14px 0 6px; font-size:13px; letter-spacing:1px; text-transform:uppercase; color:rgba(255,255,255,.65); }
+  .form input[type=text], .form input[type=tel] { width:100%; padding:14px 16px; border-radius:14px; border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.08); color:#fff; font-size:16px; outline:none; transition:.2s; font-family:inherit; }
+  .form input[type=text]:focus, .form input[type=tel]:focus { border-color:var(--y); box-shadow:0 0 0 3px rgba(255,214,10,.2); }
+  .form input::placeholder { color:rgba(255,255,255,.4); }
+  .ways { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .way { position:relative; display:block; }
+  .way input { position:absolute; opacity:0; pointer-events:none; }
+  .way span { display:flex; align-items:center; gap:10px; padding:13px 14px; border-radius:14px; border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.08); cursor:pointer; transition:.2s; font-size:15px; }
+  .way span::before { content:""; width:16px; height:16px; border-radius:50%; border:2px solid rgba(255,255,255,.6); flex:none; transition:.2s; }
+  .way:hover span { border-color:rgba(255,255,255,.5); }
+  .way input:checked + span { border-color:var(--y); background:rgba(255,214,10,.14); }
+  .way input:checked + span::before { background:var(--y); border-color:var(--y); box-shadow:inset 0 0 0 3px #07070a; }
+  .way input:focus-visible + span { box-shadow:0 0 0 3px rgba(255,214,10,.35); }
+  .agree { display:flex; gap:10px; align-items:flex-start; margin-top:16px; font-size:13.5px; color:rgba(255,255,255,.75); line-height:1.4; cursor:pointer; }
+  .agree input { width:20px; height:20px; margin-top:1px; accent-color:var(--y); flex:none; }
+  .form button.send { width:100%; margin-top:18px; padding:16px; border:none; border-radius:14px; background:var(--y); color:#000; font-weight:800; font-size:16px; letter-spacing:.5px; text-transform:uppercase; cursor:pointer; transition:.25s; box-shadow:0 0 24px rgba(255,214,10,.35); font-family:inherit; }
+  .form button.send:hover { transform:translateY(-2px); }
+  .form button.send:disabled { opacity:.6; cursor:default; transform:none; }
+  .form .note { margin-top:10px; font-size:13px; color:rgba(255,255,255,.6); text-align:center; }
+  .msg { margin-top:14px; padding:12px 14px; border-radius:12px; font-size:15px; text-align:center; display:none; }
+  .msg.ok { display:block; background:rgba(60,200,110,.18); border:1px solid rgba(60,200,110,.5); }
+  .msg.err { display:block; background:rgba(255,80,80,.16); border:1px solid rgba(255,80,80,.5); }
+  .hp { position:absolute; left:-9999px; opacity:0; height:0; width:0; }
 </style>
 </head>
 <body>
@@ -194,7 +222,32 @@ h2 span { color:var(--y); }
 <a class="cta" href="tel:+79050421499">📞 Позвонить</a>
 <a class="cta ghost" href="https://vk.ru/mebelnazakazkurskzik" target="_blank" rel="noopener">ВКонтакте</a>
 </div>
+<form class="form" id="lead" novalidate>
+        <h3>Оставьте <span>заявку</span></h3>
+        <p class="lead">Пришлём расчёт и ответим на все вопросы</p>
 
+        <label class="f" for="f-name">Имя</label>
+        <input type="text" id="f-name" name="name" maxlength="60" autocomplete="name" placeholder="Как к вам обращаться">
+
+        <label class="f" for="f-phone">Номер телефона *</label>
+        <input type="tel" id="f-phone" name="phone" autocomplete="tel" inputmode="tel" placeholder="+7 (___) ___-__-__">
+
+        <label class="f">Как с вами связаться? *</label>
+        <div class="ways">
+          <label class="way"><input type="radio" name="way" value="Позвонить"><span>Позвонить</span></label>
+          <label class="way"><input type="radio" name="way" value="WhatsApp"><span>WhatsApp</span></label>
+          <label class="way"><input type="radio" name="way" value="Telegram"><span>Telegram</span></label>
+          <label class="way"><input type="radio" name="way" value="MAX"><span>MAX</span></label>
+        </div>
+
+        <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+        <label class="agree"><input type="checkbox" id="f-agree"><span>Согласен на обработку персональных данных</span></label>
+
+        <button class="send" type="submit">Получить расчёт →</button>
+        <p class="note">Перезвоним в удобное время. Звонок ни к чему не обязывает</p>
+        <div class="msg" id="f-msg"></div>
+      </form>
 <p class="addr">г. Курск, Энгельса 169</p>
 <div class="map">
 <iframe src="https://yandex.ru/map-widget/v1/org/zik_mebel/239119527994/" allowfullscreen loading="lazy" title="ZIK мебель на карте"></iframe>
