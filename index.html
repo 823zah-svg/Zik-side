@@ -305,23 +305,33 @@ if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
 }, { passive: true });
 })();
 </script>
-  <script>
-  /* Отправка заявки в Telegram */
+<script>
+  /* Отправка заявки на Gmail через FormSubmit */
   (function () {
-    var TG_TOKEN = "9145946746:AAFW6qztWo0gZshFFOC6HVZKtn3Gjtfrfes";   /* токен бота @Zikmebelbot */
-    var TG_CHAT  = "8534431208";      /* ваш chat id */
+    var FORM_URL = "https://formsubmit.co/ajax/zikmebel5@gmail.com";
 
     var form = document.getElementById("lead");
     if (!form) return;
+
     var phone = document.getElementById("f-phone");
     var msg = document.getElementById("f-msg");
     var btn = form.querySelector(".send");
     var btnText = btn.textContent;
 
-    function show(type, text) { msg.className = "msg " + type; msg.textContent = text; }
+    function show(type, text) {
+      msg.className = "msg " + type;
+      msg.textContent = text;
+    }
 
-    /* маска телефона: +7 (905) 042-14-99 */
-    function digits(v) { v = v.replace(/\D/g, ""); if (v.charAt(0) === "7" || v.charAt(0) === "8") v = v.slice(1); return v.slice(0, 10); }
+    /* Маска телефона */
+    function digits(v) {
+      v = v.replace(/\D/g, "");
+      if (v.charAt(0) === "7" || v.charAt(0) === "8") {
+        v = v.slice(1);
+      }
+      return v.slice(0, 10);
+    }
+
     function fmt(d) {
       if (!d.length) return "";
       var s = "+7 (" + d.slice(0, 3);
@@ -331,46 +341,77 @@ if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
       if (d.length > 8) s += "-" + d.slice(8, 10);
       return s;
     }
-    phone.addEventListener("input", function () { phone.value = fmt(digits(phone.value)); });
 
-    form.addEventListener("submit", function (e) {
+    phone.addEventListener("input", function () {
+      phone.value = fmt(digits(phone.value));
+    });
+
+    form.addEventListener("submit", async function (e) {
       e.preventDefault();
-      if (form.elements["website"].value) return;                 /* спам-робот */
+
+      if (form.elements["website"] &&
+          form.elements["website"].value) return;
 
       var d = digits(phone.value);
       var name = document.getElementById("f-name").value.trim();
       var wayEl = form.querySelector('input[name="way"]:checked');
 
-      if (TG_TOKEN.indexOf("ВСТАВЬ") === 0 || TG_CHAT.indexOf("ВСТАВЬ") === 0) return show("err", "Форма не настроена: вставьте chat id в код");
-      if (d.length !== 10) return show("err", "Введите номер телефона полностью");
-      if (!wayEl) return show("err", "Выберите, как с вами связаться");
-      if (!document.getElementById("f-agree").checked) return show("err", "Нужно согласие на обработку данных");
+      if (d.length !== 10)
+        return show("err", "Введите номер телефона полностью");
+
+      if (!wayEl)
+        return show("err", "Выберите, как с вами связаться");
+
+      if (!document.getElementById("f-agree").checked)
+        return show("err", "Нужно согласие на обработку данных");
+
       try {
-        if (Date.now() - Number(localStorage.getItem("lead_ts") || 0) < 30000) return show("err", "Заявка уже отправлена, подождите немного");
+        if (Date.now() - Number(localStorage.getItem("lead_ts") || 0) < 30000)
+          return show("err", "Заявка уже отправлена, подождите немного");
       } catch (_) {}
 
-      var text = "📩  Новая заявка с сайта\n" +
-                 "Имя: " + (name || "не указано") + "\n" +
-                 "Телефон: +7" + d + "\n" +
-                 "Связаться: " + wayEl.value + "\n" +
-                 "Страница: " + location.href;
+      var data = new FormData();
+      data.append("_subject", "Новая заявка с сайта Zik Мебель");
+      data.append("Имя", name || "Не указано");
+      data.append("Телефон", "+7" + d);
+      data.append("Способ связи", wayEl.value);
+      data.append("Страница", location.href);
+      data.append("_template", "table");
 
-      btn.disabled = true; btn.textContent = "Отправляем…"; show("", "");
-      fetch("https://api.telegram.org/bot" + TG_TOKEN + "/sendMessage", {
-        method: "POST",
-        body: new URLSearchParams({ chat_id: TG_CHAT, text: text })
-      })
-        .then(function (r) { return r.json(); })
-        .then(function (j) {
-          if (!j.ok) throw new Error("tg");
-          form.reset();
-          try { localStorage.setItem("lead_ts", String(Date.now())); } catch (_) {}
-          show("ok", "Спасибо! Заявка отправлена, скоро свяжемся с вами.");
-        })
-        .catch(function () {
-          show("err", "Не удалось отправить. Позвоните нам: +7 905 042-14-99");
-        })
-        .then(function () { btn.disabled = false; btn.textContent = btnText; });
+      btn.disabled = true;
+      btn.textContent = "Отправляем…";
+      show("", "");
+
+      try {
+        var response = await fetch(FORM_URL, {
+          method: "POST",
+          body: data,
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+
+        var result = await response.json();
+
+        if (!response.ok || result.success === false ||
+            result.success === "false") {
+          throw new Error("FormSubmit error");
+        }
+
+        form.reset();
+
+        try {
+          localStorage.setItem("lead_ts", String(Date.now()));
+        } catch (_) {}
+
+        show("ok", "Спасибо! Заявка отправлена, скоро свяжемся с вами.");
+
+      } catch (error) {
+        show("err", "Не удалось отправить. Позвоните нам: +7 905 042-14-99");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = btnText;
+      }
     });
   })();
 </script>
