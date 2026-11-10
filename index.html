@@ -306,114 +306,117 @@ if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
 })();
 </script>
 <script>
-  /* Отправка заявки на Gmail через FormSubmit */
-  (function () {
-    var FORM_URL = "https://formsubmit.co/ajax/zikmebel5@gmail.com";
+(function () {
+  const EMAIL = "zikmebel5@gmail.com";
 
-    var form = document.getElementById("lead");
-    if (!form) return;
+  const form = document.getElementById("lead");
+  if (!form) return;
 
-    var phone = document.getElementById("f-phone");
-    var msg = document.getElementById("f-msg");
-    var btn = form.querySelector(".send");
-    var btnText = btn.textContent;
+  const phone = document.getElementById("f-phone");
+  const msg = document.getElementById("f-msg");
+  const btn = form.querySelector(".send");
+  const btnText = btn.textContent;
 
-    function show(type, text) {
-      msg.className = "msg " + type;
-      msg.textContent = text;
+  function show(type, text) {
+    msg.className = "msg " + type;
+    msg.textContent = text;
+  }
+
+  function digits(v) {
+    v = v.replace(/\D/g, "");
+    if (v.charAt(0) === "7" || v.charAt(0) === "8") {
+      v = v.slice(1);
     }
+    return v.slice(0, 10);
+  }
 
-    /* Маска телефона */
-    function digits(v) {
-      v = v.replace(/\D/g, "");
-      if (v.charAt(0) === "7" || v.charAt(0) === "8") {
-        v = v.slice(1);
+  function fmt(d) {
+    if (!d.length) return "";
+    let s = "+7 (" + d.slice(0, 3);
+    if (d.length >= 3) s += ")";
+    if (d.length > 3) s += " " + d.slice(3, 6);
+    if (d.length > 6) s += "-" + d.slice(6, 8);
+    if (d.length > 8) s += "-" + d.slice(8, 10);
+    return s;
+  }
+
+  phone.addEventListener("input", function () {
+    phone.value = fmt(digits(phone.value));
+  });
+
+  form.addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    if (form.elements["website"]?.value) return;
+
+    const d = digits(phone.value);
+    const name = document.getElementById("f-name").value.trim();
+    const way = form.querySelector('input[name="way"]:checked');
+
+    if (d.length !== 10)
+      return show("err", "Введите номер телефона полностью");
+
+    if (!way)
+      return show("err", "Выберите, как с вами связаться");
+
+    if (!document.getElementById("f-agree").checked)
+      return show("err", "Нужно согласие на обработку данных");
+
+    try {
+      if (Date.now() - Number(localStorage.getItem("lead_ts") || 0) < 30000)
+        return show("err", "Заявка уже отправлена, подождите немного");
+    } catch (_) {}
+
+    const data = {
+      _subject: "Новая заявка с сайта Zik Мебель",
+      _template: "table",
+      name: name || "Не указано",
+      phone: "+7" + d,
+      contact_method: way.value,
+      page: location.href
+    };
+
+    btn.disabled = true;
+    btn.textContent = "Отправляем…";
+    show("", "");
+
+    try {
+      const response = await fetch(
+        "https://formsubmit.co/ajax/" + EMAIL,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify(data)
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success ||
+          result.success === "false") {
+        throw new Error(result.message || result.error || "Ошибка FormSubmit");
       }
-      return v.slice(0, 10);
-    }
 
-    function fmt(d) {
-      if (!d.length) return "";
-      var s = "+7 (" + d.slice(0, 3);
-      if (d.length >= 3) s += ")";
-      if (d.length > 3) s += " " + d.slice(3, 6);
-      if (d.length > 6) s += "-" + d.slice(6, 8);
-      if (d.length > 8) s += "-" + d.slice(8, 10);
-      return s;
-    }
-
-    phone.addEventListener("input", function () {
-      phone.value = fmt(digits(phone.value));
-    });
-
-    form.addEventListener("submit", async function (e) {
-      e.preventDefault();
-
-      if (form.elements["website"] &&
-          form.elements["website"].value) return;
-
-      var d = digits(phone.value);
-      var name = document.getElementById("f-name").value.trim();
-      var wayEl = form.querySelector('input[name="way"]:checked');
-
-      if (d.length !== 10)
-        return show("err", "Введите номер телефона полностью");
-
-      if (!wayEl)
-        return show("err", "Выберите, как с вами связаться");
-
-      if (!document.getElementById("f-agree").checked)
-        return show("err", "Нужно согласие на обработку данных");
+      form.reset();
 
       try {
-        if (Date.now() - Number(localStorage.getItem("lead_ts") || 0) < 30000)
-          return show("err", "Заявка уже отправлена, подождите немного");
+        localStorage.setItem("lead_ts", String(Date.now()));
       } catch (_) {}
 
-      var data = new FormData();
-      data.append("_subject", "Новая заявка с сайта Zik Мебель");
-      data.append("Имя", name || "Не указано");
-      data.append("Телефон", "+7" + d);
-      data.append("Способ связи", wayEl.value);
-      data.append("Страница", location.href);
-      data.append("_template", "table");
+      show("ok", "Спасибо! Заявка отправлена, скоро свяжемся с вами.");
 
-      btn.disabled = true;
-      btn.textContent = "Отправляем…";
-      show("", "");
-
-      try {
-        var response = await fetch(FORM_URL, {
-          method: "POST",
-          body: data,
-          headers: {
-            "Accept": "application/json"
-          }
-        });
-
-        var result = await response.json();
-
-        if (!response.ok || result.success === false ||
-            result.success === "false") {
-          throw new Error("FormSubmit error");
-        }
-
-        form.reset();
-
-        try {
-          localStorage.setItem("lead_ts", String(Date.now()));
-        } catch (_) {}
-
-        show("ok", "Спасибо! Заявка отправлена, скоро свяжемся с вами.");
-
-      } catch (error) {
-        show("err", "Не удалось отправить. Позвоните нам: +7 905 042-14-99");
-      } finally {
-        btn.disabled = false;
-        btn.textContent = btnText;
-      }
-    });
-  })();
+    } catch (error) {
+      console.error("FormSubmit:", error);
+      show("err", "Ошибка: " + error.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = btnText;
+    }
+  });
+})();
 </script>
 </body>
 </html>
