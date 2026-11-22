@@ -139,7 +139,7 @@ h2 span { color:var(--y); }
 .way input:focus-visible + span { box-shadow:0 0 0 3px rgba(255,214,10,.35); }
 .agree { display:flex; gap:10px; align-items:flex-start; margin-top:16px; font-size:13.5px; color:rgba(255,255,255,.75); line-height:1.4; cursor:pointer; }
 .agree input { width:20px; height:20px; margin-top:1px; accent-color:var(--y); flex:none; }
-.form button.send { width:100%; margin-top:18px; padding:16px; border:none; border-radius:14px; background:var(--y); color:#000; font-weight:800; font-size:16px; letter-spacing:.5px; text-transform:uppercase; cursor:pointer; transition:.25s; box-shadow:0 0 24px rgba(255,214,10,.35); font-family:inherit; }
+.form button.send { width:100%; margin-top:18px; padding:16px; border:none; border-radius:14px; background:var(--y); color:#000; font-weight:800; font-size:16px; letter-spacing:.5px; text-transform:uppercase; cursor:pointer; transition:.25s; box-shadow:0 0 24px rgba(255,214,10,.35); font-family:inherit; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
 .form button.send:hover { transform:translateY(-2px); }
 .form button.send:disabled { opacity:.6; cursor:default; transform:none; }
 .form .note { margin-top:10px; font-size:13px; color:rgba(255,255,255,.6); text-align:center; }
@@ -226,7 +226,10 @@ h2 span { color:var(--y); }
 <a class="cta ghost" href="https://vk.ru/mebelnazakazkurskzik" target="_blank" rel="noopener">ВКонтакте</a>
 </div>
 
-<form id="lead" class="form" novalidate>
+<form id="lead" class="form" action="https://api.web3forms.com/submit" method="POST" novalidate>
+<input type="hidden" name="access_key" value="2888a4fd-3c13-45b2-9121-9cb21b80cf6a">
+<input type="hidden" name="subject" value="Новая заявка с сайта zikmebel.ru">
+<input type="hidden" name="from_name" value="Сайт ЗиК Мебель">
 <h3>Оставить <span>заявку</span></h3>
 <p class="lead">Свяжемся с вами и подберём мебель под ваш бюджет</p>
 <label class="f" for="f-name">Ваше имя</label>
@@ -240,7 +243,7 @@ h2 span { color:var(--y); }
 <label class="way"><input type="radio" name="way" value="telegram"><span>Telegram</span></label>
 <label class="way"><input type="radio" name="way" value="vk"><span>ВКонтакте</span></label>
 </div>
-<input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+<input class="hp" type="checkbox" name="botcheck" tabindex="-1" aria-hidden="true">
 <label class="agree"><input type="checkbox" name="agree"> Согласен на обработку персональных данных для связи со мной</label>
 <button class="send" type="submit">Отправить заявку</button>
 <div class="msg" id="lead-msg" role="status"></div>
@@ -308,4 +311,64 @@ sx = e.touches[0].clientX; sy = e.touches[0].clientY;
 document.addEventListener("touchend", function (e) {
 if (lb.className === "open" || skip) return;
 var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
-if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy
+if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
+}, { passive: true });
+
+/* отправка заявки */
+var form = document.getElementById("lead");
+var msg = document.getElementById("lead-msg");
+var pageLoaded = Date.now();
+
+function setStatus(text, cls) {
+msg.textContent = text; msg.className = "msg" + (cls ? " " + cls : "");
+if (text && msg.scrollIntoView) { try { msg.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch (x) {} }
+}
+
+form.addEventListener("submit", function (e) {
+e.preventDefault();
+var name = form.name.value.trim();
+var phone = form.phone.value.trim();
+var digits = phone.replace(/\D/g, "");
+
+if (name.length < 2) { setStatus("Введите имя", "err"); form.name.focus(); return; }
+if (digits.length < 10 || digits.length > 12) { setStatus("Проверьте номер телефона", "err"); form.phone.focus(); return; }
+if (!form.agree.checked) { setStatus("Нужно согласие на обработку данных", "err"); return; }
+
+var btn = form.querySelector("button.send");
+btn.disabled = true;
+setStatus("Отправляем…", "");
+
+if (form.botcheck.checked) { btn.disabled = false; return; } /* ловушка для ботов (чекбокс не автозаполняется) */
+
+var way = form.querySelector('input[name="way"]:checked').nextElementSibling.textContent;
+
+fetch("https://api.web3forms.com/submit", {
+method: "POST",
+headers: { "Content-Type": "application/json", "Accept": "application/json" },
+body: JSON.stringify({
+access_key: "2888a4fd-3c13-45b2-9121-9cb21b80cf6a",
+subject: "Новая заявка с сайта zikmebel.ru",
+from_name: "Сайт ЗиК Мебель",
+"Имя": name,
+"Телефон": phone,
+"Как связаться": way
+})
+})
+.then(function (r) { return r.json(); })
+.then(function (j) {
+if (j.success) {
+form.reset();
+setStatus("Спасибо! Заявка отправлена, мы скоро свяжемся с вами.", "ok");
+} else {
+setStatus("Не удалось отправить. Позвоните нам: +7 905 042-14-99", "err");
+}
+})
+.catch(function () {
+setStatus("Нет связи. Позвоните нам: +7 905 042-14-99", "err");
+})
+.then(function () { btn.disabled = false; });
+});
+})();
+</script>
+</body>
+</html>
